@@ -1,4 +1,5 @@
 import os
+
 try:
     from urllib import quote_plus
 except ImportError:
@@ -11,6 +12,7 @@ __all__ = (
     'Server',
     'Search',
     'Show',
+    'User'
 )
 
 
@@ -38,6 +40,8 @@ class AbstractApi(object):
             os.getenv('TRAKT_APIKEY', 'TRAKTAPIKEY'),
             '/'.join(map(str, filter(None, args)))
         ).rstrip('/')
+
+
 
 
 class Shows(AbstractApi):
@@ -164,3 +168,13 @@ class Show(AbstractApi):
         """
         extendend = 'extended' if extendend else None
         return cls._get('show/summary', title, extendend)
+
+class User(AbstractApi):
+    @classmethod
+    def list(cls, list):
+        """
+        Use the user API
+
+        :param query: The search query that should be used
+        """
+        return cls._get('user/list', os.getenv('TRAKT_USERNAME'), list)
