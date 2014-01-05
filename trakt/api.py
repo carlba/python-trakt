@@ -4,7 +4,11 @@ try:
     from urllib import quote_plus
 except ImportError:
     from urllib.parse import quote_plus
+
 import requests
+
+from request_formater import TraktRequestFormater
+
 from trakt.errors import TraktException
 __all__ = (
     'Shows',
@@ -33,13 +37,15 @@ class AbstractApi(object):
         >>> AbstractApi._builduri('/shows/trending/', None)
         'http://api.trakt.tv/shows/trending.json/TRAKTAPIKEY'
         """
-        return '{0}/{1}.{2}/{3}/{4}'.format(
+        res = '{0}/{1}.{2}/{3}/{4}'.format(
             'http://api.trakt.tv',
             api.strip('/'),
             'json',
             os.getenv('TRAKT_APIKEY', 'TRAKTAPIKEY'),
             '/'.join(map(str, filter(None, args)))
         ).rstrip('/')
+        print res
+        return res
 
 
 
@@ -112,7 +118,7 @@ class Search(AbstractApi):
 
         :param query: The search query that should be used
         """
-        return cls._get('search/shows', quote_plus(query.encode('utf8')))
+        return cls._get('search/shows', TraktRequestFormater.format(query))
 
 
 class Show(AbstractApi):
@@ -125,8 +131,10 @@ class Show(AbstractApi):
         :param season: The season number. Use 0 if you want the specials
         :param episode: The episode number
         """
-        return cls._get('show/episode/summary', title, season, episode)
-
+        try:
+            return cls._get('show/episode/summary', title.replace(".","-"), season, episode)
+        except:
+            return cls._get('show/episode/summary', title, season, episode)
     @classmethod
     def related(cls, title, hidewatched=False):
         """
