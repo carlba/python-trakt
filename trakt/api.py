@@ -44,11 +44,7 @@ class AbstractApi(object):
             os.getenv('TRAKT_APIKEY', 'TRAKTAPIKEY'),
             '/'.join(map(str, filter(None, args)))
         ).rstrip('/')
-        print res
         return res
-
-
-
 
 class Shows(AbstractApi):
     @classmethod
