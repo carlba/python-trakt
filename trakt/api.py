@@ -6,6 +6,10 @@ except ImportError:
     from urllib.parse import quote_plus
 
 import requests
+import requests_cache
+import datetime
+
+requests_cache.install_cache('trakt',backend="redis")
 
 from request_formater import TraktRequestFormater
 
@@ -22,11 +26,18 @@ __all__ = (
 
 class AbstractApi(object):
     @classmethod
-    def _get(cls, api, *args):
+    def _get(cls, api, *args,**kwargs):
+        cached = kwargs.pop("cached", True)
         auth = None
         if os.getenv('TRAKT_USERNAME') and os.getenv('TRAKT_PASSWORD'):
             auth = (os.getenv('TRAKT_USERNAME'), os.getenv('TRAKT_PASSWORD'))
-        response = requests.get(cls._builduri(api, *args), auth=auth).json()
+
+        if cached:
+            response = requests.get(cls._builduri(api, *args), auth=auth).json()
+        elif not cached:
+            with requests_cache.disabled():
+                response = requests.get(cls._builduri(api, *args), auth=auth).json()
+
         if isinstance(response, dict) and response.get('status', False) == 'failure':
             raise TraktException(response.get('error', 'Unknown Error'))
         return response
@@ -44,6 +55,7 @@ class AbstractApi(object):
             os.getenv('TRAKT_APIKEY', 'TRAKTAPIKEY'),
             '/'.join(map(str, filter(None, args)))
         ).rstrip('/')
+        print res
         return res
 
 class Shows(AbstractApi):
@@ -76,10 +88,11 @@ class Calendar(AbstractApi):
         :param date: Start date for the calendar. (today)
         :param days: Number of days to display starting from the date. (7)
         """
-        if date:
+        if date and isinstance(date,datetime.datetime):
             date = date.strftime('%Y%m%d')
         else:
-            days = None
+            pass
+            #days = None
         return cls._get('calendar/shows', date, days)
 
     @classmethod
@@ -181,4 +194,4 @@ class User(AbstractApi):
 
         :param query: The search query that should be used
         """
-        return cls._get('user/list', os.getenv('TRAKT_USERNAME'), list)
+        return cls._get('user/list', os.getenv('TRAKT_USERNAME'), list,cached=False)
